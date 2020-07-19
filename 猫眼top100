@@ -1,0 +1,73 @@
+#-*- codeing = utf-8 -*-
+#@time : $(DATA) $(TIME)
+#@Author : samuelzhang
+#@File :  $(NAME).py
+#@Software : PyCharm
+
+import requests,xlwt
+from lxml import etree
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'
+}
+workbook = xlwt.Workbook(encoding='utf-8')
+worksheet1 = workbook.add_sheet('榜单', cell_overwrite_ok=True)
+worksheet1.write(0,0,'电影的名称')
+worksheet1.write(0,1,'电影的作者及出版信息')
+worksheet1.write(0,2,'电影上映的时间')
+worksheet1.write(0,3,'电影评分')
+list1 = []
+row1 = 1
+def parser_url1(url1):
+    res =requests.get(url1, headers = headers).text
+    html = etree.HTML(res)
+    divs = html.xpath('//div[@class="board-item-main"]')
+    for div in divs:
+        maoyan1 = {}
+        title = div.xpath('.//div[@class="movie-item-info"]/p/a/@title')
+        if title:
+            maoyan1['title'] = div.xpath('.//div[@class="movie-item-info"]/p/a/@title')[0].strip()
+        else:
+            pass
+        stars = div.xpath('.//p[@class="star"]/text()')
+        if stars:
+            maoyan1['stars'] = div.xpath('.//p[@class="star"]/text()')[0].strip()
+        else:
+            pass
+        times = div.xpath('.//p[@class="releasetime"]/text()')
+        if times:
+            maoyan1['times'] = div.xpath('.//p[@class="releasetime"]/text()')[0].strip()
+        else:
+            pass
+        #笨方法来获取的两个标签的数据
+        #scores1 = div.xpath('.//i[@class="integer"]/text()')
+        # if scores1:
+        #     maoyan1['scores1'] = div.xpath('.//i[@class="integer"]/text()')[0].strip()
+        # else:
+        #     pass
+        # scores2 = div.xpath('.//i[@class="fraction"]/text()')
+        # if scores2:
+        #     maoyan1['scores2'] = div.xpath('.//i[@class="fraction"]/text()')[0].strip()
+        # else:
+        #     pass
+        #获取两个子标签内的内容相加
+        maoyan1['scores'] = div.xpath('string(.//p[@class="score"])')
+        if maoyan1:
+            maoyan1 = maoyan1
+            list1.append(maoyan1)
+def write_to_excel1(list1):
+    global row1
+    for lis in list1:
+        lie = 0
+        for k, v in lis.items():
+            worksheet1.write(row1, lie, v)
+            lie += 1
+        row1 += 1
+if __name__ == '__main__':
+    for i in range(0,10):
+        print('开始爬取第{}页'.format(i+1))
+        url1 = "https://maoyan.com/board/4?offset={}".format(i*10)
+        parser_url1(url1)
+    print("打印出全部的信息: ", list1)
+    write_to_excel1(list1)
+    workbook.save('猫眼数据.xls')
+    print("finished the spider of maoyan_movies")
